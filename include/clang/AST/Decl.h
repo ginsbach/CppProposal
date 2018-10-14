@@ -3436,6 +3436,20 @@ public:
   /// Set the promotion type.
   void setPromotionType(QualType T) { PromotionType = T; }
 
+  /// Return the underlying type this enum decl corresponds to.
+  /// This returns a null QualType for an enum forward definition with no fixed
+  /// underlying type.
+  /// This should be the same as getIntegerType(), with the exception of
+  /// Extended Scoped Enums, for which it is instead the scoped enum that is
+  /// being extended.
+  QualType getUnderlyingType() const {
+    if (!IntegerType)
+      return QualType();
+    if (const Type *T = IntegerType.dyn_cast<const Type*>())
+      return QualType(T, 0);
+    return IntegerType.get<TypeSourceInfo*>()->getType().getUnqualifiedType();
+  }
+
   /// Return the integer type this enum decl corresponds to.
   /// This returns a null QualType for an enum forward definition with no fixed
   /// underlying type.
@@ -3444,7 +3458,13 @@ public:
       return QualType();
     if (const Type *T = IntegerType.dyn_cast<const Type*>())
       return QualType(T, 0);
-    return IntegerType.get<TypeSourceInfo*>()->getType().getUnqualifiedType();
+
+    // If the type was explicitly specified then it may be an Extended Scoped
+    // Enum and we need to figure out the actual integer type.
+    auto T = IntegerType.get<TypeSourceInfo*>()->getType();
+    while(auto ET = dyn_cast_or_null<const EnumType>(T.getTypePtrOrNull()))
+      T = ET->getDecl()->getUnderlyingType();
+    return T.getUnqualifiedType();
   }
 
   /// Set the underlying integer type.

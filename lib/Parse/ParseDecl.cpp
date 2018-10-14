@@ -4474,6 +4474,38 @@ void Parser::ParseEnumBody(SourceLocation StartLoc, Decl *EnumDecl) {
 
   Decl *LastEnumConstDecl = nullptr;
 
+  // If "getUnderlyingType" returns an EnumType, this means that we are
+  // dealing with an Extended Scoped Enum.
+  // This means that it will contain all the enumeration values that were
+  // contained in the underlying scoped enum and it allows implicit casting
+  // from that underlying scoped enum.
+  if (auto ActualEnumDecl = dyn_cast<clang::EnumDecl>(EnumDecl)) {
+    if (auto IntType = ActualEnumDecl->getUnderlyingType().getTypePtrOrNull()) {
+      if (auto ParentEnum = dyn_cast<clang::EnumType>(IntType)) {
+
+        clang::EnumDecl* ParentDecl = ParentEnum->getDecl();
+
+        for(auto Enumerator : ParentDecl->enumerators()) {
+          EnumAvailabilityDiags.emplace_back(*this);
+
+          Decl *EnumConstDecl = Actions.ActOnEnumConstant(
+              getCurScope(),
+              EnumDecl,
+              LastEnumConstDecl,
+              Enumerator->getLocation(),
+              Enumerator->getIdentifier(),
+              ParsedAttributesView(),      // Can't deal with attributes :(
+              Enumerator->getLocation(),   // Incorrect but not used anyway
+              Enumerator->getInitExpr());
+
+          EnumAvailabilityDiags.back().done();
+          EnumConstantDecls.push_back(EnumConstDecl);
+          LastEnumConstDecl = EnumConstDecl;
+        }
+      }
+    }
+  }
+
   // Parse the enumerator-list.
   while (Tok.isNot(tok::r_brace)) {
     // Parse enumerator. If failed, try skipping till the start of the next

@@ -13631,6 +13631,13 @@ bool Sema::CheckEnumUnderlyingType(TypeSourceInfo *TI) {
     if (BT->isInteger())
       return false;
 
+  // To enable Extended Scoped Enumerations, EnumType is allowed for the
+  // underlying type.
+  if (const EnumType* ET = T->getAs<EnumType>())
+    if (const EnumDecl* decl = ET->getDecl())
+      if (decl->isScoped())
+        return false;
+
   Diag(UnderlyingLoc, diag::err_enum_invalid_underlying) << T;
   return true;
 }

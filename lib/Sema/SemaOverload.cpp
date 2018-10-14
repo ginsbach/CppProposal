@@ -1951,6 +1951,22 @@ IsTransparentUnionStandardConversion(Sema &S, Expr* From,
 /// ToType is an integral promotion (C++ 4.5). If so, returns true and
 /// sets PromotedType to the promoted type.
 bool Sema::IsIntegralPromotion(Expr *From, QualType FromType, QualType ToType) {
+  // Scoped enumerations can be promoted to scoped enumerations that extend
+  // them. This of course doesn't change the underlying integer values in any
+  // way. This only triggers in this specific case, in any other case
+  // "getUnderlyingType" could never return an EnumType (instead it returns
+  // the same as getIntegerType).
+
+  if (const EnumType *ToEnumType = ToType->getAs<EnumType>()) {
+    QualType ToParentType = ToEnumType->getDecl()->getUnderlyingType();
+    if (const EnumType *ToParentEnumType = dyn_cast_or_null<EnumType>(ToParentType.getTypePtrOrNull())) {
+      if (Context.hasSameUnqualifiedType(ToParentType, FromType))
+        return true;
+      else
+        return Sema::IsIntegralPromotion(From, FromType, ToParentType);
+    }
+  }
+
   const BuiltinType *To = ToType->getAs<BuiltinType>();
   // All integers are built-in.
   if (!To) {
