@@ -13,14 +13,39 @@
 \author{Philip Ginsbach\\\url{philip.ginsbach@ed.ac.uk}}
 \title{C++ Proposal:\\Extensions of Scoped Enumerations}
 
+\publishers{%
+    \normalfont\normalsize%
+    \parbox{0.8\linewidth}{%
+{
+\vspace{2em}
+\centering\textbf{abstract}
+\vspace{0.5em}
+
+}
+
+I propose an extension mechanism for scoped enumerations, similar in spirit to class inheritance.
+This allows a scoped enumeration to contain another scoped enumeration as a subset.
+This crucially allows implicit typesafe casting from enumerators in the base enumeration to the extension.
+    }
+}
+
+
 \begin{document}
 \maketitle
-\section*{Introduction}
+\tableofcontents
+\newpage
+\section{Introduction}
 Scoped enumerations (``enum classes'') provide a type safe alternative to C-style enums.
-It can be desirable to have enumerations that share a subset of their enumerators and there is a natural correspondence between subtyping and adding enumerators to enums.
-This proposal is for a simple, sound and practically useful extension to the core language standard to provide a mechanism for subtyping scoped enumerations.
 
-\section*{Motivation}
+It can be desirable to have a subset of an enumeration to be another self-contained enumeration.
+For example, there might be an enumeration for types of leaves in a tree and another enumeration for types of nodes in a tree.
+In this case, the choices for types of generic nodes is an extension of the choices for types of leaves.
+
+There is currently no way to express this relationship properly in C++ but it is desirable from a standpoint of modularity.
+This proposal is for a simple, sound and practically useful extension to the core language standard to provide a mechanism for extending scoped enumerations.
+This retains the type safe properties of scoped enumerations, introduces no runtime overhead and uses existing syntax.
+
+\section{Motivation}
 Consider the task of parsing simple arithmetic expressions of the following form.
 
 \begin{lstlisting}[language={}]
@@ -30,46 +55,44 @@ Consider the task of parsing simple arithmetic expressions of the following form
 \noindent
 Implementing a lexer for such a language would typically involve an enum definition.
 
-{\footnotesize
 \begin{lstlisting}[language=C++]
     enum class TokenType { constant, binary_op };
-
     struct Token {
         TokenType type;
-        // ...
-    };
-\end{lstlisting} }
+        /* ... */ };
+\end{lstlisting}
 
 \noindent
 It is then quite natural to describe a simple syntax tree structure as below.
 The leaves of the syntax tree correspond to individual tokens and \texttt{TokenType} is naturally a subtype of \texttt{SyntaxType}.
 There is currently no way to express this relationship in C++.
 
-{\footnotesize
 \begin{lstlisting}[language=C++]
     enum class SyntaxType { constant, binary_op, binary_exp };
-
     struct Syntax {
         SyntaxType     type;
         vector<Syntax> children;
-        // ...
-    };
-\end{lstlisting}}
+        /* ... */ };
+\end{lstlisting}
 
+\noindent
 This causes real problems: In a parser, each token will be converted to a syntax tree leaf.
 The only safe way (without relying on the underlying integer values) to do this is with a switch statement or equivalent if-else branches.
 
-{\footnotesize
 \begin{lstlisting}[language=C++]
     switch(token.type) {
-        case TokenType::constant:  stack.emplace_back(SyntaxType::constant);
-        case TokenType::binary_op: stack.emplace_back(SyntaxType::binary_op);
-    }
-\end{lstlisting}}
+        case TokenType::constant: 
+            stack.emplace_back(SyntaxType::constant); break;
+        case TokenType::binary_op:
+            stack.emplace_back(SyntaxType::binary_op); break; }
+\end{lstlisting}
 \noindent
+This problem can be avoided by discarding the definition of TokenType and by using SyntaxType everywhere.
+However, this breaks modularity: why should the lexer have to be aware of the existence of a parser when generating a stream of tokens?
+
 Notice how this problem is only introduced by the use of scoped enumerations and is not present when using, for example, \texttt{typedef}s.
 
-\section*{Proposed Solution}
+\section{Proposed Solution}
 I propose the use of already existing syntax for the extension of scoped enumerations.
 
 \begin{lstlisting}[language={}]
@@ -88,9 +111,9 @@ Note that the last property is essentially inverse to the effects of class inher
 
 Extending a scoped enumeration therefore results in a new scoped enumeration that is constructed as if all the enumerator definitions of the base enumeration are textually inserted before the first specified enumerator.
 Implicitly assigned enumerator values start with the increment of the assigned value of the last enumerator of the base enumeration.
-It furthermore means that enumerator values can not be renamed and enumerator names can not be assigned a new value.
+Enumerator values can not be renamed and already existing enumerator names can not be assigned a new value.
 
-\subsection*{Implementation}
+\subsection{Implementation}
 The feature is simple to implement, as it uses no new syntax and only simple semantics.
 An implementation of the proposed feature in clang is available on github at \url{https://github.com/ginsbach/CppProposal}.
 It requires the \texttt{release\_70} branch of llvm to build, you can obtain the source code with the commands below.
@@ -104,8 +127,11 @@ For build instructions please consult the llvm project documentation \url{https:
   ln -s clang llvm/tools/clang
 \end{lstlisting}}
 
-\section*{Discussion}
-\subsection*{Implicit Base Types}
+\section{Discussion}
+\subsection{std::underlying\_type}
+The underlying type of an extension of a scoped enumeration is the underlying type of the base enumeration.
+
+\subsection{Implicit Base Types}
 The base types of scoped enumerations in C++ can be left unspecified, allowing
 the compiler to choose an integral type.
 This clashes with extensions, as some enumerators in the extended enum might not
@@ -114,7 +140,51 @@ be representable in the chosen integral type.
 I propose to only allow scoped enumerations with explicit integral type
 specifications to be extensible.
 
-\subsection*{Multiple Base Enumerations}
+\subsection{Extensions vs Restrictions}
+There are other important reasons to have enums overlap that are not covered by this proposal.
+Consider the following examples of the days of the week.
+
+\begin{lstlisting}[language=C++]
+enum class WeekDays : int {Mon, Tue, Wed, Thu, Fri, Sat, Sun};
+enum class WorkDays : int {Mon, Tue, Wed, Thu, Fri};
+enum class WeekendDays: : int {Sat, Sun};
+enum class ProductiveDays : int {Tue, Wed, Thu};
+\end{lstlisting}
+
+\noindent
+I argue that this is an entirely different problem.
+There is a clear complete set and parts of it are predicated with different additional properties, as can be expressed
+with boolean predicate functions.
+It might be desirable to embed this into the type system but it is quite unrelated to what this proposal is about.
+
+\begin{lstlisting}[language=C++]
+bool isWorkDay(WeekDay day) { return day==WeekDay::Mon
+             || day==WeekDay::Tue || day==WeekDay::Wed
+             || day==WeekDay::Thu || day==WeekDay::Fri };
+bool isWeekendDay(WeekDay day) { return day==WeekDay::Sat
+                                    || day==WeekDay::Sun };
+bool isProductiveDay(WeekDay day) { return day==WeekDay::Tue
+                   || day==WeekDay::Wed || day==WeekDay::Thu };
+\end{lstlisting}
+
+\noindent
+This does not necessitate what this proposal provides, which is a form of modularity.
+In the motivating example, tokens should not be thought of as a subset of syntactical constructs, they are on their own
+a complete thing.
+There is no reason why a lexer should even be aware of the existence of a parser and this is reflected in the fact that
+the definition of TokenType stands on it's own.
+
+On the other hand, the definition of SyntaxType incorporates TokenType but it doesn't need to be aware of it's contents
+but can treat it as an opaque thing, just like a derived class doesn't need to be aware of the internals of it's base
+class.
+
+\subsection{Empty Extension}
+There is no fundamental reason to disallow an extension to a scoped enumeration that doesn't actually add any new enumerators.
+It would simply create two scoped enumerations that are identical but can only be implicitly cast in one direction.
+
+I propose to allow this.
+
+\subsection{Multiple Base Enumerations}
 It is often useful to group enumerators together, in effect partitioning the
 enum into several smaller enums.
 This could be represented with something equivalent to multiple inheritance for
@@ -128,22 +198,13 @@ things that should be independent from a conceptual standpoint.
 
 I propose that multiple base enumerations should not be allowed.
 
-\subsection*{Empty Extension}
-There is no fundamental reason to disallow an extension to a scoped enumeration that doesn't actually add any new enumerators.
-It would simply create two scoped enumerations that are identical but can only be implicitly cast in one direction.
-
-I propose to allow this.
-
-\subsection*{std::underlying\_type}
-The underlying type of an extension of a scoped enumeration is the underlying type of the base enumeration.
-
-\newpage
-\section*{Example}
+\section{Example}
 Consider the example below based on the motivation section.
 It can be readily compiled with the previously mentioned, extended fork of clang.
 
 {\footnotesize
 \begin{lstlisting}[language=C++]
+
 // Tokens can either be constants or binary operators. The numeric values are
 // intentionally arbitrary.
 enum class TokenType : int { constant=211, binary_op=223 };
@@ -152,6 +213,7 @@ struct Token {
     TokenType type;
     string    value;
 };
+
 
 // A node in the parse tree can either be a leaf (i.e. a token) or a binary
 // expression. We can elegantly express this with Extended Scoped Enumerations.
@@ -170,6 +232,11 @@ struct Syntax {
     vector<Syntax> children;
     string         value;
 };
+
+
+
+
+
 
 Syntax parse(vector<Token> tokens)
 {
@@ -210,6 +277,20 @@ Syntax parse(vector<Token> tokens)
         return stack[0];
     throw;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 double evaluate(Syntax syntax)
 {
