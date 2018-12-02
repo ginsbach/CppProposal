@@ -107,7 +107,7 @@ For build instructions please consult the llvm project documentation \url{https:
 \section*{Discussion}
 \subsection*{Implicit Base Types}
 The base types of scoped enumerations in C++ can be left unspecified, allowing
-the compiler to chose an integral type.
+the compiler to choose an integral type.
 This clashes with extensions, as some enumerators in the extended enum might not
 be representable in the chosen integral type.
 
@@ -118,7 +118,7 @@ specifications to be extensible.
 It is often useful to group enumerators together, in effect partitioning the
 enum into several smaller enums.
 This could be represented with something equivalent to multiple inheritance for
-classes, however I do not think this should be done.
+classes, however, I do not think this should be done.
 
 Multiple base enumerations could only work if they use the same integral type
 and it would fail if any of their enumerators have the same value or name.
@@ -132,10 +132,10 @@ I propose that multiple base enumerations should not be allowed.
 There is no fundamental reason to disallow an extension to a scoped enumeration that doesn't actually add any new enumerators.
 It would simply create two scoped enumerations that are identical but can only be implicitly cast in one direction.
 
-I porpose to allow this.
+I propose to allow this.
 
 \subsection*{std::underlying\_type}
-The underlying type of an extension to a scoped enumeration is the underlying type of the base enumeration.
+The underlying type of an extension of a scoped enumeration is the underlying type of the base enumeration.
 
 \newpage
 \section*{Example}
