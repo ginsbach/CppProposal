@@ -213,7 +213,14 @@ With this proposal, there are three uses of the same syntax that mean different 
 \end{description}
 
 \noindent
-This situation is not perfect but a compromise due to the desire not to introduce new syntax or keywords.
+This situation is not perfect but a compromise in order not to introduce new syntax or keywords.
+There have been several other suggestions such as the following.
+
+\begin{description}
+\item[``\texttt{enum class\ Extended\ >:\ Base\ \{}'']\hfill\\This is more in line wih type theory notation.
+\item[``\texttt{enum class\ Extended\ :\ extend\ Base\ \{}'']\hfill\\This is very clear but requires a new keyword.
+\item[``\texttt{enum class\ Extended\ :\ continue\ Base\ \{}'']\hfill\\This requires no new keyword but is arguably less clear than ``extends''.
+\end{description}
 
 \section{Example}
 Consider the example below based on the motivation section.
@@ -221,7 +228,6 @@ It can be readily compiled with the previously mentioned, extended fork of clang
 
 {\footnotesize
 \begin{lstlisting}[language=C++]
-
 // Tokens can either be constants or binary operators. The numeric values are
 // intentionally arbitrary.
 enum class TokenType : int { constant=211, binary_op=223 };
@@ -249,11 +255,6 @@ struct Syntax {
     vector<Syntax> children;
     string         value;
 };
-
-
-
-
-
 
 Syntax parse(vector<Token> tokens)
 {
@@ -294,19 +295,6 @@ Syntax parse(vector<Token> tokens)
         return stack[0];
     throw;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 double evaluate(Syntax syntax)
