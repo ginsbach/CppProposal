@@ -107,7 +107,13 @@ This would have the following effect:
 \item All enumerators from the base enumeration are available in the new enumeration, the underlying integer values are guaranteed to be identical.
 \item Values of the base enumeration can be safely and implicitly cast to values of the extended enumeration type.
 \end{enumerate}
+
+\noindent
 Note that the last property is essentially inverse to the effects of class inheritance.
+This is natural and well understood in type theory.
+It arises from that fact that enumerations in C++ are an instance of {\em sum} types, whereas structs are an instance of {\em product} types.
+The terms {\em sum} and {\em product} here are to be understood in their category theory sense.
+The inversion of the subtype/supertype relationship is then a direct reflection of the fact that product and direct sum (i.e. coproduct) are duals.
 
 Extending a scoped enumeration therefore results in a new scoped enumeration that is constructed as if all the enumerator definitions of the base enumeration are textually inserted before the first specified enumerator.
 Implicitly assigned enumerator values start with the increment of the assigned value of the last enumerator of the base enumeration.
@@ -197,6 +203,17 @@ with each other in mind, effectively introducing implicit dependencies between
 things that should be independent from a conceptual standpoint.
 
 I propose that multiple base enumerations should not be allowed.
+
+\subsection{Syntax}
+With this proposal, there are three uses of the same syntax that mean different things.
+\begin{description}
+\item[``\texttt{class\ Derive\ :\ Base\ \{}'']\hfill\\This is class inheritance. \texttt{Derived} is now a subtype of \texttt{Base}, i.e.\ a \texttt{Derive} can be used as a \texttt{Base}.
+\item[``\texttt{enum class\ Extended\ :\ Base\ \{}'']\hfill\\ This extends a scoped enumeration. \texttt{Extended} is now a supertype of \texttt{Base}, i.e.\ a \texttt{Base} can be used as an \texttt{Extended}.
+\item[``\texttt{enum class\ Enum\ :\ int\ \{}'']\hfill\\ This specifies the integral type of a scoped enum.
+\end{description}
+
+\noindent
+This situation is not perfect but a compromise due to the desire not to introduce new syntax or keywords.
 
 \section{Example}
 Consider the example below based on the motivation section.
