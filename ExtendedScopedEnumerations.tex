@@ -26,8 +26,9 @@
 I propose an extension mechanism for scoped enumerations, similar in spirit to class inheritance.
 This allows a scoped enumeration to contain another scoped enumeration as a subset.
 This crucially allows implicit typesafe casting from enumerators in the base enumeration to the extension.
-    }
-}
+
+This proposal allows for cleaner modularity while maintaining type safety, without introducing any runtime overhead.
+}}
 
 
 \begin{document}
@@ -330,4 +331,7 @@ int main()
 
 \end{lstlisting}}
 
+\section{Acknowledgements}
+Thank you very much to the numerous contributions on the sg14 and future proposals mailing lists.
+I think and hope that the many comments and suggestions vastly improved the clarity of this proposal.
 \end{document}
